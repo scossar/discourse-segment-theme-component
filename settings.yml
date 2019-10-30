@@ -1,0 +1,18 @@
+segment_write_key:
+  default: ""
+  description: "The Write Key for your Segment Source."
+track_users:
+  default: true
+  description: "Call the Segment identify function when a user logs in or refreshes the site."
+track_by_external_id:
+  default: false
+  description: "For sites with SSO enabled, track users by their external_id instead of by their Discourse id."
+track_page:
+  default: true
+  description: "Track page visits by type (currently tracks 'Homepage', 'Topic', 'Category', and 'Tag' pages.)"
+track_post_creation:
+  default: false
+  description: "Track topic and post creation. Returns topic_id, topic_slug for topics; topic_id, topic_slug, and post_number for posts."
+extend_content_security_policy:
+  type: list
+  default: "script_src: https://cdn.segment.com/analytics.js/"

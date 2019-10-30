@@ -1,0 +1,65 @@
+<script type="text/discourse-plugin" version="0.8.27">
+    !function(){var analytics=window.analytics=window.analytics||[];if(!analytics.initialize)if(analytics.invoked)window.console&&console.error&&console.error("Segment snippet included twice.");else{analytics.invoked=!0;analytics.methods=["trackSubmit","trackClick","trackLink","trackForm","pageview","identify","reset","group","track","ready","alias","debug","page","once","off","on"];analytics.factory=function(t){return function(){var e=Array.prototype.slice.call(arguments);e.unshift(t);analytics.push(e);return analytics}};for(var t=0;t<analytics.methods.length;t++){var e=analytics.methods[t];analytics[e]=analytics.factory(e)}analytics.load=function(t,e){var n=document.createElement("script");n.type="text/javascript";n.async=!0;n.src="https://cdn.segment.com/analytics.js/v1/"+t+"/analytics.min.js";var a=document.getElementsByTagName("script")[0];a.parentNode.insertBefore(n,a);analytics._loadOptions=e};analytics.SNIPPET_VERSION="4.1.0";
+    analytics.load(settings.segment_write_key);
+    }}();
+    const ssoEnabled = api.container.lookup('site-settings:main').enable_sso;
+    let currentUser = api.getCurrentUser(),
+    userID,
+    referrer;
+    // identify() will be called when a user logs in, or refreshes the page.
+    if (settings.track_users && currentUser && !userID) {
+        api.container.lookup('store:main').find('user', currentUser.username).then((user) => {
+            userID = ssoEnabled && settings.track_by_external_id ? user.external_id : user.id;
+            analytics.identify(userID);
+        });
+    }
+    api.onPageChange((url) => {
+        let pageType;
+        const realURL = window.location.href;
+        if (url.match(/^\/$/)) {
+            pageType = "Homepage";
+        } else if (url.startsWith('/tags/')) {
+            pageType = "Tags"
+        } else if (url.startsWith('/t/')) {
+            pageType = "Topic";
+        } else if (url.startsWith('/c/')) {
+            pageType = "Category";
+        }
+        if (settings.track_page && pageType) {
+            analytics.page(pageType, {
+                url: realURL,
+                path: url,
+                referrer: referrer
+            });
+        }
+        referrer = realURL;
+    });
+    api.modifyClass('model:composer', {
+        createPost(opts) {
+            const result = this._super(opts);
+            if (result) {
+                result.then((r) => {
+                    let json = r.responseJson;
+                    if (settings.track_post_creation && json && json.post && json.action === 'create_post') {
+                        let topicID = json.post.topic_id,
+                            topicSlug = json.post.topic_slug,
+                            postNumber = json.post.post_number;
+                        if (postNumber === 1) {
+                            analytics.track('Topic Created', {
+                                topic_id: topicID,
+                                topic_slug: topicSlug
+                            });
+                        } else {
+                            analytics.track('Post Created', {
+                                topic_id: topicID,
+                                topic_slug: topicSlug,
+                                post_number: postNumber
+                            });
+                        }
+                    }
+                });
+            }
+            return result;
+        }
+    });
+ </script>
