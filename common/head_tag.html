@@ -1,65 +1,252 @@
 <script type="text/discourse-plugin" version="0.8.27">
-    !function(){var analytics=window.analytics=window.analytics||[];if(!analytics.initialize)if(analytics.invoked)window.console&&console.error&&console.error("Segment snippet included twice.");else{analytics.invoked=!0;analytics.methods=["trackSubmit","trackClick","trackLink","trackForm","pageview","identify","reset","group","track","ready","alias","debug","page","once","off","on"];analytics.factory=function(t){return function(){var e=Array.prototype.slice.call(arguments);e.unshift(t);analytics.push(e);return analytics}};for(var t=0;t<analytics.methods.length;t++){var e=analytics.methods[t];analytics[e]=analytics.factory(e)}analytics.load=function(t,e){var n=document.createElement("script");n.type="text/javascript";n.async=!0;n.src="https://cdn.segment.com/analytics.js/v1/"+t+"/analytics.min.js";var a=document.getElementsByTagName("script")[0];a.parentNode.insertBefore(n,a);analytics._loadOptions=e};analytics.SNIPPET_VERSION="4.1.0";
+!function(){var analytics=window.analytics=window.analytics||[];if(!analytics.initialize)if(analytics.invoked)window.console&&console.error&&console.error("Segment snippet included twice.");else{analytics.invoked=!0;analytics.methods=["trackSubmit","trackClick","trackLink","trackForm","pageview","identify","reset","group","track","ready","alias","debug","page","once","off","on"];analytics.factory=function(t){return function(){var e=Array.prototype.slice.call(arguments);e.unshift(t);analytics.push(e);return analytics}};for(var t=0;t<analytics.methods.length;t++){var e=analytics.methods[t];analytics[e]=analytics.factory(e)}analytics.load=function(t,e){var n=document.createElement("script");n.type="text/javascript";n.async=!0;n.src="https://cdn.segment.com/analytics.js/v1/"+t+"/analytics.min.js";var a=document.getElementsByTagName("script")[0];a.parentNode.insertBefore(n,a);analytics._loadOptions=e};analytics.SNIPPET_VERSION="4.1.0";
     analytics.load(settings.segment_write_key);
-    }}();
-    const ssoEnabled = api.container.lookup('site-settings:main').enable_sso;
-    let currentUser = api.getCurrentUser(),
+}}();
+const ssoEnabled = api.container.lookup('site-settings:main').enable_sso;
+let currentUser = api.getCurrentUser(),
     userID,
-    referrer;
-    // identify() will be called when a user logs in, or refreshes the page.
-    if (settings.track_users && currentUser && !userID) {
-        api.container.lookup('store:main').find('user', currentUser.username).then((user) => {
-            userID = ssoEnabled && settings.track_by_external_id ? user.external_id : user.id;
-            analytics.identify(userID);
-        });
+    referrer,
+    currentPage;
+// identify() will be called when a user logs in, or refreshes the page.
+if (settings.track_users && currentUser && !userID) {
+    api.container.lookup('store:main').find('user', currentUser.username).then((user) => {
+        userID = ssoEnabled && settings.track_by_external_id ? user.external_id : user.id;
+        //analytics.identify(userID);
+    });
+}
+
+let ua = navigator.userAgent;
+let dcu = "UniverseWebview";
+let platform = "Web";
+
+if (ua.match(/(iPhone|iPod|iPad)/) && ua.indexOf(dcu) !== -1) {
+    platform = "iOS";
+}
+
+if (ua.match(/(Android)/) && ua.indexOf(dcu) !== -1) {
+    platform = "Android";
+}
+
+function page(title, opts) {
+    opts = opts || {};
+    opts.platform = platform;
+    currentPage = title;
+    console.log('calling page with title:', title, 'opts', opts);
+    // should currentPage get used here?
+    //window.analytics.page(title, opts);
+}
+
+function track(title, opts) {
+    opts = opts || {};
+    opts.platform = platform;
+    opts.location = currentPage;
+    console.log('calling track with title:', title, 'opts', opts);
+    //window.analytics.track(title, opts);
+}
+
+function pageChanged(container, details) {
+
+    let routeName = details.currentRouteName;
+    let route = container.lookup(`route:${routeName}`);
+    let model = route.currentModel;
+    let pageTitle;
+
+    console.log('routename', routeName)
+
+    switch (routeName) {
+        case "discovery.categories":
+            pageTitle = "Categories Page";
+            page(pageTitle);
+            break;
+        case "discovery.parentCategory":
+            if (model && model.category) {
+                pageTitle = `Category Page: ${model.category.name}`
+                page(pageTitle);
+            }
+            break;
+        case "discovery.category":
+            if (model && model.category) {
+                pageTitle = `Subcategory Page: ${model.category.name}`
+                page(pageTitle);
+            }
+            break;
+        case "tags.show":
+            if (model && model.id) {
+                pageTitle = `Tags Page: ${model.id}`;
+                page(pageTitle);
+            }
+            break;
+        case "tags.showCategory":
+            if (model && model.id) {
+                pageTitle = `Category tag page: ${model.id}`
+                page(pageTitle);
+            }
+            break;
+        case "topic.fromParams":
+        case "topic.fromParamsNear":
+            if (details.title) {
+                pageTitle = `Topic Page: ${details.title}`;
+                page(pageTitle);
+            }
     }
-    api.onPageChange((url) => {
-        let pageType;
-        const realURL = window.location.href;
-        if (url.match(/^\/$/)) {
-            pageType = "Homepage";
-        } else if (url.startsWith('/tags/')) {
-            pageType = "Tags"
-        } else if (url.startsWith('/t/')) {
-            pageType = "Topic";
-        } else if (url.startsWith('/c/')) {
-            pageType = "Category";
+}
+
+api.onAppEvent("page:changed", details => {
+        pageChanged(api.container, details);
+    }
+);
+
+    /*  api.onAppEvent("page:compose-reply", topic => {
+        track("Reply Composed", {
+          cta_title: "Post Comment",
+          dcu_asset_id: topic.id,
+          dcu_asset_name: topic.title,
+          dcu_asset_type: "Community Thread",
+          dcu_parent_asset_id: topic.get("category.id"),
+          dcu_parent_asset_name: topic.get("category.name"),
+          dcu_parent_asset_type: "Community Board"
+        });
+      });*/
+      api.onAppEvent("page:like-toggled", (post, likeAction) => {
+        let topic = post.topic;
+        if (post && topic && likeAction && likeAction.acted) {
+          track("Like", {
+            dcu_asset_id: topic.id,
+            dcu_asset_name: topic.title,
+            dcu_asset_type: "Community Thread",
+            dcu_parent_asset_id: topic.get("category.id"),
+            dcu_parent_asset_name: topic.get("category.name"),
+            dcu_parent_asset_type: "Community Board",
+            dcu_comment_id: post.id,
+            like: !likeAction.acted
+          });
         }
-        if (settings.track_page && pageType) {
-            analytics.page(pageType, {
-                url: realURL,
-                path: url,
-                referrer: referrer
+      });
+      api.onAppEvent("page:bookmark-post-toggled", post => {
+        let topic = post.topic;
+        if (post && post.bookmarked && topic) {
+          track(
+            post.post_number === 1 ? "Thread Bookmarked" : "Post Bookmarked",
+            {
+              dcu_asset_id: topic.id,
+              dcu_asset_name: topic.title,
+              dcu_asset_type: "Community Thread",
+              dcu_parent_asset_id: topic.get("category.id"),
+              dcu_parent_asset_name: topic.get("category.name"),
+              dcu_parent_asset_type: "Community Board",
+              comment_id: post.post_number === 1 ? null : post.id,
+              bookmark: post.bookmarked
+            }
+          );
+        }
+      });
+      api.onAppEvent("post:created", post => {
+        if (post) {
+          track("Comment Posted", {
+            dcu_asset_id: post.get("topic.id"),
+            dcu_asset_name: post.get("topic.title"),
+            dcu_asset_type: "Community Thread",
+            dcu_parent_asset_id: post.get("topic.category.id"),
+            dcu_parent_asset_name: post.get("topic.category.name"),
+            dcu_parent_asset_type: "Community Board",
+            comment_id: post.id
+          });
+        }
+      });
+
+      api.onAppEvent("post:flag-created", (post, postAction) => {
+        if (post && postAction) {
+          track("Flag", {
+            dcu_asset_id: post.id,
+            dcu_asset_type: "Comment",
+            dcu_parent_asset_id: post.topic_id,
+            dcu_parent_asset_name: post.get("topic.title"),
+            dcu_parent_asset_type: "Community Thread",
+            comment_id: post.id,
+            flag: true,
+            flag_option: postAction.get("actionType.name")
+          });
+        }
+      });
+
+      api.onAppEvent("topic:flag-created", (post, postAction) => {
+        if (post && postAction) {
+          track("Flag", {
+            dcu_asset_id: post.topic_id,
+            dcu_asset_name: post.get("topic.title"),
+            dcu_asset_type: "Community Thread",
+            dcu_parent_asset_id: post.get("topic.category.id"),
+            dcu_parent_asset_name: post.get("topic.category.name"),
+            dcu_parent_asset_type: "Community Board",
+            comment_id: post.id,
+            flag: true,
+            flag_option: postAction.get("actionType.name")
+          });
+        }
+      });
+
+      api.onAppEvent("topic:created", (post, composerModel) => {
+        if (post) {
+          track("Thread Created", {
+            dcu_asset_id: post.topic_id,
+            dcu_asset_name: post.title,
+            dcu_asset_type: "Community Thread",
+            dcu_parent_asset_id: composerModel.get("category.id"),
+            dcu_parent_asset_name: composerModel.get("category.name"),
+            dcu_parent_asset_type: "Community Board",
+            comment_id: post.id
+          });
+        }
+      });
+
+/* api.onPageChange((url) => {
+     let pageType;
+     const realURL = window.location.href;
+     if (url.match(/^\/$/)) {
+         pageType = "Homepage";
+     } else if (url.startsWith('/tags/')) {
+         pageType = "Tags"
+     } else if (url.startsWith('/t/')) {
+         pageType = "Topic";
+     } else if (url.startsWith('/c/')) {
+         pageType = "Category";
+     }
+     if (settings.track_page && pageType) {
+         analytics.page(pageType, {
+             url: realURL,
+             path: url,
+             referrer: referrer
+         });
+     }
+     referrer = realURL;
+ });*/
+api.modifyClass('model:composer', {
+    createPost(opts) {
+        const result = this._super(opts);
+        if (result) {
+            result.then((r) => {
+                let json = r.responseJson;
+                if (settings.track_post_creation && json && json.post && json.action === 'create_post') {
+                    let topicID = json.post.topic_id,
+                        topicSlug = json.post.topic_slug,
+                        postNumber = json.post.post_number;
+                    if (postNumber === 1) {
+                        /* analytics.track('Topic Created', {
+                             topic_id: topicID,
+                             topic_slug: topicSlug
+                         });*/
+                    } else {
+                        /* analytics.track('Post Created', {
+                             topic_id: topicID,
+                             topic_slug: topicSlug,
+                             post_number: postNumber
+                         });*/
+                    }
+                }
             });
         }
-        referrer = realURL;
-    });
-    api.modifyClass('model:composer', {
-        createPost(opts) {
-            const result = this._super(opts);
-            if (result) {
-                result.then((r) => {
-                    let json = r.responseJson;
-                    if (settings.track_post_creation && json && json.post && json.action === 'create_post') {
-                        let topicID = json.post.topic_id,
-                            topicSlug = json.post.topic_slug,
-                            postNumber = json.post.post_number;
-                        if (postNumber === 1) {
-                            analytics.track('Topic Created', {
-                                topic_id: topicID,
-                                topic_slug: topicSlug
-                            });
-                        } else {
-                            analytics.track('Post Created', {
-                                topic_id: topicID,
-                                topic_slug: topicSlug,
-                                post_number: postNumber
-                            });
-                        }
-                    }
-                });
-            }
-            return result;
-        }
-    });
- </script>
+        return result;
+    }
+});
+
+</script>
