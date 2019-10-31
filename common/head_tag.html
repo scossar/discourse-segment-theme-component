@@ -5,12 +5,14 @@
 const ssoEnabled = api.container.lookup('site-settings:main').enable_sso;
 let currentUser = api.getCurrentUser(),
     userID,
-    referrer,
+    referrer = document.referrer,
+    currentUrl,
     currentPage;
 // identify() will be called when a user logs in, or refreshes the page.
 if (settings.track_users && currentUser && !userID) {
     api.container.lookup('store:main').find('user', currentUser.username).then((user) => {
         userID = ssoEnabled && settings.track_by_external_id ? user.external_id : user.id;
+        console.log('calling identify for:', userID)
         //analytics.identify(userID);
     });
 }
@@ -51,62 +53,56 @@ function pageChanged(container, details) {
     let model = route.currentModel;
     let pageTitle;
 
+    currentUrl = window.location.href;
+
     console.log('routename', routeName)
 
     switch (routeName) {
         case "discovery.categories":
             pageTitle = "Categories Page";
-            page(pageTitle);
+            page(pageTitle, {referrer: referrer});
             break;
         case "discovery.parentCategory":
             if (model && model.category) {
                 pageTitle = `Category Page: ${model.category.name}`
-                page(pageTitle);
+                page(pageTitle, {referrer: referrer});
             }
             break;
         case "discovery.category":
             if (model && model.category) {
                 pageTitle = `Subcategory Page: ${model.category.name}`
-                page(pageTitle);
+                page(pageTitle, {referrer: referrer});
             }
             break;
         case "tags.show":
             if (model && model.id) {
                 pageTitle = `Tags Page: ${model.id}`;
-                page(pageTitle);
+                page(pageTitle, {referrer: referrer});
             }
             break;
         case "tags.showCategory":
             if (model && model.id) {
                 pageTitle = `Category tag page: ${model.id}`
-                page(pageTitle);
+                page(pageTitle, {referrer: referrer});
             }
             break;
         case "topic.fromParams":
         case "topic.fromParamsNear":
             if (details.title) {
                 pageTitle = `Topic Page: ${details.title}`;
-                page(pageTitle);
+                page(pageTitle, {referrer: referrer});
             }
     }
+
+    referrer = currentUrl;
 }
 
 api.onAppEvent("page:changed", details => {
+        let realUrl = window.location.href;
         pageChanged(api.container, details);
     }
 );
 
-    /*  api.onAppEvent("page:compose-reply", topic => {
-        track("Reply Composed", {
-          cta_title: "Post Comment",
-          dcu_asset_id: topic.id,
-          dcu_asset_name: topic.title,
-          dcu_asset_type: "Community Thread",
-          dcu_parent_asset_id: topic.get("category.id"),
-          dcu_parent_asset_name: topic.get("category.name"),
-          dcu_parent_asset_type: "Community Board"
-        });
-      });*/
       api.onAppEvent("page:like-toggled", (post, likeAction) => {
         let topic = post.topic;
         if (post && topic && likeAction && likeAction.acted) {
