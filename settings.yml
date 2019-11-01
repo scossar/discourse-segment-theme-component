@@ -10,9 +10,21 @@ track_by_external_id:
 track_page:
   default: true
   description: "Track page visits by type (currently tracks 'Homepage', 'Topic', 'Category', and 'Tag' pages.)"
+track_topic_creation:
+  default: false
+  description: "Track topic creation"
 track_post_creation:
   default: false
-  description: "Track topic and post creation. Returns topic_id, topic_slug for topics; topic_id, topic_slug, and post_number for posts."
+  description: "Track post creation. Returns topic_id, topic_slug for topics; topic_id, topic_slug, and post_number for posts."
+track_likes:
+  default: false
+  description: "Track likes"
+track_flags:
+  default: false
+  description: "Track flags"
+track_bookmarks:
+  default: false
+  description: "Track bookmarks"
 extend_content_security_policy:
   type: list
   default: "script_src: https://cdn.segment.com/analytics.js/"
