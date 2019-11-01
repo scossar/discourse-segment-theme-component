@@ -47,7 +47,6 @@ function track(title, opts) {
 }
 
 function pageChanged(container, details) {
-
     let routeName = details.currentRouteName;
     let route = container.lookup(`route:${routeName}`);
     let model = route.currentModel;
@@ -98,15 +97,17 @@ function pageChanged(container, details) {
 }
 
 api.onAppEvent("page:changed", details => {
-        let realUrl = window.location.href;
-        pageChanged(api.container, details);
+        if (settings.track_page) {
+            pageChanged(api.container, details);
+        }
     }
 );
 
-      api.onAppEvent("page:like-toggled", (post, likeAction) => {
-        let topic = post.topic;
-        if (post && topic && likeAction && likeAction.acted) {
-          track("Like", {
+if (settings.track_likes) {
+api.onAppEvent("page:like-toggled", (post, likeAction) => {
+    let topic = post.topic;
+    if (post && topic && likeAction && likeAction.acted) {
+        track("Like", {
             dcu_asset_id: topic.id,
             dcu_asset_name: topic.title,
             dcu_asset_type: "Community Thread",
@@ -115,30 +116,36 @@ api.onAppEvent("page:changed", details => {
             dcu_parent_asset_type: "Community Board",
             dcu_comment_id: post.id,
             like: !likeAction.acted
-          });
-        }
-      });
-      api.onAppEvent("page:bookmark-post-toggled", post => {
-        let topic = post.topic;
-        if (post && post.bookmarked && topic) {
-          track(
+        });
+    }
+});
+}
+
+if (settings.track_bookmarks) {
+api.onAppEvent("page:bookmark-post-toggled", post => {
+    let topic = post.topic;
+    if (post && post.bookmarked && topic) {
+        track(
             post.post_number === 1 ? "Thread Bookmarked" : "Post Bookmarked",
             {
-              dcu_asset_id: topic.id,
-              dcu_asset_name: topic.title,
-              dcu_asset_type: "Community Thread",
-              dcu_parent_asset_id: topic.get("category.id"),
-              dcu_parent_asset_name: topic.get("category.name"),
-              dcu_parent_asset_type: "Community Board",
-              comment_id: post.post_number === 1 ? null : post.id,
-              bookmark: post.bookmarked
+                dcu_asset_id: topic.id,
+                dcu_asset_name: topic.title,
+                dcu_asset_type: "Community Thread",
+                dcu_parent_asset_id: topic.get("category.id"),
+                dcu_parent_asset_name: topic.get("category.name"),
+                dcu_parent_asset_type: "Community Board",
+                comment_id: post.post_number === 1 ? null : post.id,
+                bookmark: post.bookmarked
             }
-          );
-        }
-      });
-      api.onAppEvent("post:created", post => {
-        if (post) {
-          track("Comment Posted", {
+        );
+    }
+});
+}
+
+if (settings.track_post_creation) {
+api.onAppEvent("post:created", post => {
+    if (post) {
+        track("Comment Posted", {
             dcu_asset_id: post.get("topic.id"),
             dcu_asset_name: post.get("topic.title"),
             dcu_asset_type: "Community Thread",
@@ -146,13 +153,15 @@ api.onAppEvent("page:changed", details => {
             dcu_parent_asset_name: post.get("topic.category.name"),
             dcu_parent_asset_type: "Community Board",
             comment_id: post.id
-          });
-        }
-      });
+        });
+    }
+});
+}
 
-      api.onAppEvent("post:flag-created", (post, postAction) => {
-        if (post && postAction) {
-          track("Flag", {
+if (settings.track_flags) {
+api.onAppEvent("post:flag-created", (post, postAction) => {
+    if (post && postAction) {
+        track("Flag", {
             dcu_asset_id: post.id,
             dcu_asset_type: "Comment",
             dcu_parent_asset_id: post.topic_id,
@@ -161,13 +170,13 @@ api.onAppEvent("page:changed", details => {
             comment_id: post.id,
             flag: true,
             flag_option: postAction.get("actionType.name")
-          });
-        }
-      });
+        });
+    }
+});
 
-      api.onAppEvent("topic:flag-created", (post, postAction) => {
-        if (post && postAction) {
-          track("Flag", {
+api.onAppEvent("topic:flag-created", (post, postAction) => {
+    if (post && postAction) {
+        track("Flag", {
             dcu_asset_id: post.topic_id,
             dcu_asset_name: post.get("topic.title"),
             dcu_asset_type: "Community Thread",
@@ -177,71 +186,19 @@ api.onAppEvent("page:changed", details => {
             comment_id: post.id,
             flag: true,
             flag_option: postAction.get("actionType.name")
-          });
-        }
-      });
+        });
+    }
+});
+}
 
-      api.onAppEvent("topic:created", (post, composerModel) => {
-        if (post) {
-          track("Thread Created", {
-            dcu_asset_id: post.topic_id,
-            dcu_asset_name: post.title,
-            dcu_asset_type: "Community Thread",
-            dcu_parent_asset_id: composerModel.get("category.id"),
-            dcu_parent_asset_name: composerModel.get("category.name"),
-            dcu_parent_asset_type: "Community Board",
-            comment_id: post.id
-          });
-        }
-      });
-
-/* api.onPageChange((url) => {
-     let pageType;
-     const realURL = window.location.href;
-     if (url.match(/^\/$/)) {
-         pageType = "Homepage";
-     } else if (url.startsWith('/tags/')) {
-         pageType = "Tags"
-     } else if (url.startsWith('/t/')) {
-         pageType = "Topic";
-     } else if (url.startsWith('/c/')) {
-         pageType = "Category";
-     }
-     if (settings.track_page && pageType) {
-         analytics.page(pageType, {
-             url: realURL,
-             path: url,
-             referrer: referrer
-         });
-     }
-     referrer = realURL;
- });*/
-api.modifyClass('model:composer', {
-    createPost(opts) {
-        const result = this._super(opts);
-        if (result) {
-            result.then((r) => {
-                let json = r.responseJson;
-                if (settings.track_post_creation && json && json.post && json.action === 'create_post') {
-                    let topicID = json.post.topic_id,
-                        topicSlug = json.post.topic_slug,
-                        postNumber = json.post.post_number;
-                    if (postNumber === 1) {
-                        /* analytics.track('Topic Created', {
-                             topic_id: topicID,
-                             topic_slug: topicSlug
-                         });*/
-                    } else {
-                        /* analytics.track('Post Created', {
-                             topic_id: topicID,
-                             topic_slug: topicSlug,
-                             post_number: postNumber
-                         });*/
-                    }
-                }
-            });
-        }
-        return result;
+api.onAppEvent("topic:created", (post, composerModel) => {
+    if (post) {
+        track("Topic Created", {
+            topic_id: post.topic_id,
+            topic_title: post.title,
+            category_id: composerModel.get("category.id"),
+            category_name: composerModel.get("category.name"),
+        });
     }
 });
 
