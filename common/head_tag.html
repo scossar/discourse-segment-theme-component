@@ -1,13 +1,43 @@
 <script type="text/discourse-plugin" version="0.8.27">
-!function(){var analytics=window.analytics=window.analytics||[];if(!analytics.initialize)if(analytics.invoked)window.console&&console.error&&console.error("Segment snippet included twice.");else{analytics.invoked=!0;analytics.methods=["trackSubmit","trackClick","trackLink","trackForm","pageview","identify","reset","group","track","ready","alias","debug","page","once","off","on"];analytics.factory=function(t){return function(){var e=Array.prototype.slice.call(arguments);e.unshift(t);analytics.push(e);return analytics}};for(var t=0;t<analytics.methods.length;t++){var e=analytics.methods[t];analytics[e]=analytics.factory(e)}analytics.load=function(t,e){var n=document.createElement("script");n.type="text/javascript";n.async=!0;n.src="https://cdn.segment.com/analytics.js/v1/"+t+"/analytics.min.js";var a=document.getElementsByTagName("script")[0];a.parentNode.insertBefore(n,a);analytics._loadOptions=e};analytics.SNIPPET_VERSION="4.1.0";
-    analytics.load(settings.segment_write_key);
-}}();
+!function () {
+    var analytics = window.analytics = window.analytics || [];
+    if (!analytics.initialize) if (analytics.invoked) window.console && console.error && console.error("Segment snippet included twice."); else {
+        analytics.invoked = !0;
+        analytics.methods = ["trackSubmit", "trackClick", "trackLink", "trackForm", "pageview", "identify", "reset", "group", "track", "ready", "alias", "debug", "page", "once", "off", "on"];
+        analytics.factory = function (t) {
+            return function () {
+                var e = Array.prototype.slice.call(arguments);
+                e.unshift(t);
+                analytics.push(e);
+                return analytics
+            }
+        };
+        for (var t = 0; t < analytics.methods.length; t++) {
+            var e = analytics.methods[t];
+            analytics[e] = analytics.factory(e)
+        }
+        analytics.load = function (t, e) {
+            var n = document.createElement("script");
+            n.type = "text/javascript";
+            n.async = !0;
+            n.src = "https://cdn.segment.com/analytics.js/v1/" + t + "/analytics.min.js";
+            var a = document.getElementsByTagName("script")[0];
+            a.parentNode.insertBefore(n, a);
+            analytics._loadOptions = e
+        };
+        analytics.SNIPPET_VERSION = "4.1.0";
+        analytics.load(settings.segment_write_key);
+    }
+}();
 const ssoEnabled = api.container.lookup('site-settings:main').enable_sso;
 let currentUser = api.getCurrentUser(),
-    userID,
     referrer = document.referrer,
+    ua = navigator.userAgent,
+    platform = "Web",
+    userID,
     currentUrl,
     currentPage;
+
 // identify() will be called when a user logs in, or refreshes the page.
 if (settings.track_users && currentUser && !userID) {
     api.container.lookup('store:main').find('user', currentUser.username).then((user) => {
@@ -17,15 +47,11 @@ if (settings.track_users && currentUser && !userID) {
     });
 }
 
-let ua = navigator.userAgent;
-let dcu = "UniverseWebview";
-let platform = "Web";
-
-if (ua.match(/(iPhone|iPod|iPad)/) && ua.indexOf(dcu) !== -1) {
+if (ua.match(/(iPhone|iPod|iPad)/)) {
     platform = "iOS";
 }
 
-if (ua.match(/(Android)/) && ua.indexOf(dcu) !== -1) {
+if (ua.match(/(Android)/)) {
     platform = "Android";
 }
 
@@ -54,8 +80,6 @@ function pageChanged(container, details) {
 
     currentUrl = window.location.href;
 
-    console.log('routename', routeName)
-
     switch (routeName) {
         case "discovery.categories":
             pageTitle = "Categories Page";
@@ -63,13 +87,13 @@ function pageChanged(container, details) {
             break;
         case "discovery.parentCategory":
             if (model && model.category) {
-                pageTitle = `Category Page: ${model.category.name}`
+                pageTitle = `Category Page: ${model.category.name}`;
                 page(pageTitle, {referrer: referrer});
             }
             break;
         case "discovery.category":
             if (model && model.category) {
-                pageTitle = `Subcategory Page: ${model.category.name}`
+                pageTitle = `Subcategory Page: ${model.category.name}`;
                 page(pageTitle, {referrer: referrer});
             }
             break;
@@ -81,7 +105,7 @@ function pageChanged(container, details) {
             break;
         case "tags.showCategory":
             if (model && model.id) {
-                pageTitle = `Category tag page: ${model.id}`
+                pageTitle = `Category tag page: ${model.id}`;
                 page(pageTitle, {referrer: referrer});
             }
             break;
@@ -96,110 +120,95 @@ function pageChanged(container, details) {
     referrer = currentUrl;
 }
 
-api.onAppEvent("page:changed", details => {
-        if (settings.track_page) {
+if (settings.track_page) {
+    api.onAppEvent("page:changed", details => {
             pageChanged(api.container, details);
         }
-    }
-);
-
-if (settings.track_likes) {
-api.onAppEvent("page:like-toggled", (post, likeAction) => {
-    let topic = post.topic;
-    if (post && topic && likeAction && likeAction.acted) {
-        track("Like", {
-            dcu_asset_id: topic.id,
-            dcu_asset_name: topic.title,
-            dcu_asset_type: "Community Thread",
-            dcu_parent_asset_id: topic.get("category.id"),
-            dcu_parent_asset_name: topic.get("category.name"),
-            dcu_parent_asset_type: "Community Board",
-            dcu_comment_id: post.id,
-            like: !likeAction.acted
-        });
-    }
-});
-}
-
-if (settings.track_bookmarks) {
-api.onAppEvent("page:bookmark-post-toggled", post => {
-    let topic = post.topic;
-    if (post && post.bookmarked && topic) {
-        track(
-            post.post_number === 1 ? "Thread Bookmarked" : "Post Bookmarked",
-            {
-                dcu_asset_id: topic.id,
-                dcu_asset_name: topic.title,
-                dcu_asset_type: "Community Thread",
-                dcu_parent_asset_id: topic.get("category.id"),
-                dcu_parent_asset_name: topic.get("category.name"),
-                dcu_parent_asset_type: "Community Board",
-                comment_id: post.post_number === 1 ? null : post.id,
-                bookmark: post.bookmarked
-            }
-        );
-    }
-});
+    );
 }
 
 if (settings.track_post_creation) {
-api.onAppEvent("post:created", post => {
-    if (post) {
-        track("Comment Posted", {
-            dcu_asset_id: post.get("topic.id"),
-            dcu_asset_name: post.get("topic.title"),
-            dcu_asset_type: "Community Thread",
-            dcu_parent_asset_id: post.get("topic.category.id"),
-            dcu_parent_asset_name: post.get("topic.category.name"),
-            dcu_parent_asset_type: "Community Board",
-            comment_id: post.id
-        });
-    }
-});
+    api.onAppEvent("post:created", post => {
+        if (post) {
+            track("Comment Posted", {
+                post_id: post.id,
+                topic_id: post.get("topic.id"),
+                topic_title: post.get("topic.title"),
+                category_id: post.get("topic.category.id"),
+                category_name: post.get("topic.category.name"),
+            });
+        }
+    });
+}
+
+if (settings.track_topic_creation) {
+    api.onAppEvent("topic:created", (post, composerModel) => {
+        if (post) {
+            track("Topic Created", {
+                topic_id: post.topic_id,
+                topic_title: post.title,
+                category_id: composerModel.get("category.id"),
+                category_name: composerModel.get("category.name"),
+            });
+        }
+    });
+}
+
+if (settings.track_likes) {
+    api.onAppEvent("page:like-toggled", (post, likeAction) => {
+        let topic = post.topic;
+        if (post && topic && likeAction && likeAction.acted) {
+            track("Like", {
+                topic_id: topic.id,
+                topic_title: topic.title,
+                category_id: topic.get("category.id"),
+                category_name: topic.get("category.name"),
+                post_id: post.id
+            });
+        }
+    });
+}
+
+if (settings.track_bookmarks) {
+    api.onAppEvent("page:bookmark-post-toggled", post => {
+        let topic = post.topic;
+        if (post && post.bookmarked && topic) {
+            track(
+                post.post_number === 1 ? "Thread Bookmarked" : "Post Bookmarked",
+                {
+                    topic_id: topic.id,
+                    topic_title: topic.title,
+                    category_id: topic.get("category.id"),
+                    category_name: topic.get("category.name"),
+                    post_id: post.post_number === 1 ? null : post.id
+                }
+            );
+        }
+    });
 }
 
 if (settings.track_flags) {
-api.onAppEvent("post:flag-created", (post, postAction) => {
-    if (post && postAction) {
-        track("Flag", {
-            dcu_asset_id: post.id,
-            dcu_asset_type: "Comment",
-            dcu_parent_asset_id: post.topic_id,
-            dcu_parent_asset_name: post.get("topic.title"),
-            dcu_parent_asset_type: "Community Thread",
-            comment_id: post.id,
-            flag: true,
-            flag_option: postAction.get("actionType.name")
-        });
-    }
-});
+    api.onAppEvent("post:flag-created", (post, postAction) => {
+        if (post && postAction) {
+            track("Flag", {
+                post_id: post.id,
+                topic_id: post.topic_id,
+                topic_title: post.get("topic.title"),
+                flag_option: postAction.get("actionType.name")
+            });
+        }
+    });
 
-api.onAppEvent("topic:flag-created", (post, postAction) => {
-    if (post && postAction) {
-        track("Flag", {
-            dcu_asset_id: post.topic_id,
-            dcu_asset_name: post.get("topic.title"),
-            dcu_asset_type: "Community Thread",
-            dcu_parent_asset_id: post.get("topic.category.id"),
-            dcu_parent_asset_name: post.get("topic.category.name"),
-            dcu_parent_asset_type: "Community Board",
-            comment_id: post.id,
-            flag: true,
-            flag_option: postAction.get("actionType.name")
-        });
-    }
-});
+    api.onAppEvent("topic:flag-created", (post, postAction) => {
+        if (post && postAction) {
+            track("Flag", {
+                post_id: post.topic_id,
+                topic_title: post.get("topic.title"),
+                category_id: post.get("topic.category.id"),
+                category_name: post.get("topic.category.name"),
+                flag_option: postAction.get("actionType.name")
+            });
+        }
+    });
 }
-
-api.onAppEvent("topic:created", (post, composerModel) => {
-    if (post) {
-        track("Topic Created", {
-            topic_id: post.topic_id,
-            topic_title: post.title,
-            category_id: composerModel.get("category.id"),
-            category_name: composerModel.get("category.name"),
-        });
-    }
-});
-
 </script>
