@@ -12,19 +12,19 @@ track_page:
   description: "Track page visits by page type (tracks the latest, categories, category, tags, and topic pages.)"
 track_topic_creation:
   default: false
-  description: "Track topic creation"
+  description: "Track topic creation."
 track_post_creation:
   default: false
-  description: "Track post creation. Returns topic_id, topic_slug for topics; topic_id, topic_slug, and post_number for posts."
+  description: "Track post creation."
 track_likes:
   default: false
-  description: "Track likes"
+  description: "Track likes."
 track_flags:
   default: false
-  description: "Track flags"
+  description: "Track flags."
 track_bookmarks:
   default: false
-  description: "Track bookmarks"
+  description: "Track bookmarks."
 extend_content_security_policy:
   type: list
   default: "script_src: https://cdn.segment.com/analytics.js/"
