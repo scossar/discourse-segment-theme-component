@@ -29,21 +29,21 @@
         analytics.load(settings.segment_write_key);
     }
 }();
+
 const ssoEnabled = api.container.lookup('site-settings:main').enable_sso;
-let currentUser = api.getCurrentUser(),
-    referrer = document.referrer,
-    ua = navigator.userAgent,
-    platform = "Web",
-    userID,
-    currentUrl,
-    currentPage;
+let currentUser = api.getCurrentUser();
+let referrer = document.referrer;
+let ua = navigator.userAgent;
+let platform = "Web";
+let userID;
+let currentUrl;
+let currentPage;
 
 // identify() will be called when a user logs in, or refreshes the page.
 if (settings.track_users && currentUser && !userID) {
     api.container.lookup('store:main').find('user', currentUser.username).then((user) => {
         userID = ssoEnabled && settings.track_by_external_id ? user.external_id : user.id;
-        console.log('calling identify for:', userID)
-        //analytics.identify(userID);
+        analytics.identify(userID);
     });
 }
 
@@ -59,17 +59,14 @@ function page(title, opts) {
     opts = opts || {};
     opts.platform = platform;
     currentPage = title;
-    console.log('calling page with title:', title, 'opts', opts);
-    // should currentPage get used here?
-    //window.analytics.page(currentPage, opts);
+    window.analytics.page(currentPage, opts);
 }
 
 function track(title, opts) {
     opts = opts || {};
     opts.platform = platform;
     opts.location = currentPage;
-    console.log('calling track with title:', title, 'opts', opts);
-    //window.analytics.track(title, opts);
+    window.analytics.track(title, opts);
 }
 
 function pageChanged(container, details) {
@@ -78,7 +75,6 @@ function pageChanged(container, details) {
     let model = route.currentModel;
     let pageTitle;
 
-    console.log('routeName:', routeName);
     currentUrl = window.location.href;
 
     switch (routeName) {
@@ -87,32 +83,32 @@ function pageChanged(container, details) {
             page(pageTitle, {referrer: referrer});
             break;
         case "discovery.categories":
-            pageTitle = "Categories Page";
+            pageTitle = "All Categories";
             page(pageTitle, {referrer: referrer});
             break;
         case "discovery.parentCategory":
         case "discovery.category":
             if (model && model.category) {
-                pageTitle = `Category Page: ${model.category.name}`;
+                pageTitle = `Category: ${model.category.name}`;
                 page(pageTitle, {referrer: referrer});
             }
             break;
         case "tags.show":
             if (model && model.id) {
-                pageTitle = `Tags Page: ${model.id}`;
+                pageTitle = `Tag: ${model.id}`;
                 page(pageTitle, {referrer: referrer});
             }
             break;
         case "tags.showCategory":
             if (model && model.id) {
-                pageTitle = `Category tag page: ${model.id}`;
+                pageTitle = `Category Tag: ${model.id}`;
                 page(pageTitle, {referrer: referrer});
             }
             break;
         case "topic.fromParams":
         case "topic.fromParamsNear":
             if (details.title) {
-                pageTitle = `Topic Page: ${details.title}`;
+                pageTitle = `Topic: ${details.title}`;
                 page(pageTitle, {referrer: referrer});
             }
     }
@@ -127,20 +123,6 @@ if (settings.track_page) {
     );
 }
 
-if (settings.track_post_creation) {
-    api.onAppEvent("post:created", post => {
-        if (post) {
-            track("Comment Posted", {
-                post_id: post.id,
-                topic_id: post.get("topic.id"),
-                topic_title: post.get("topic.title"),
-                category_id: post.get("topic.category.id"),
-                category_name: post.get("topic.category.name"),
-            });
-        }
-    });
-}
-
 if (settings.track_topic_creation) {
     api.onAppEvent("topic:created", (post, composerModel) => {
         if (post) {
@@ -149,6 +131,20 @@ if (settings.track_topic_creation) {
                 topic_title: post.title,
                 category_id: composerModel.get("category.id"),
                 category_name: composerModel.get("category.name"),
+            });
+        }
+    });
+}
+
+if (settings.track_post_creation) {
+    api.onAppEvent("post:created", post => {
+        if (post) {
+            track("Post Created", {
+                post_id: post.id,
+                topic_id: post.get("topic.id"),
+                topic_title: post.get("topic.title"),
+                category_id: post.get("topic.category.id"),
+                category_name: post.get("topic.category.name"),
             });
         }
     });
