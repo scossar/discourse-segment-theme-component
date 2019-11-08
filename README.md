@@ -5,7 +5,7 @@ site to Segment.
 
 ### Installation
 
-See [How do I install a Theme or Theme Component?](https://meta.discourse.org/t/how-do-i-install-a-theme-or-theme-component/63682).
+See [How do I install a Theme or Theme Component?](https://meta.discourse.org/t/how-do-i-install-a-theme-or-theme-component/63682)
 
 ### Use
 
