@@ -1,7 +1,7 @@
 {
   "name": "discourse-segment-theme-component",
   "about_url": "https://github.com/scossar/discourse-segment-theme-component",
-  "license_url": null,
+  "license_url": "https://github.com/scossar/discourse-segment-theme-component/blob/master/LICENSE",
   "component": true,
   "assets": {
   },
