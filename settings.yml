@@ -8,8 +8,8 @@ track_by_external_id:
   default: false
   description: "For sites with SSO enabled, track users by their external_id instead of by their Discourse id."
 track_page:
-  default: true
-  description: "Track page visits by type (currently tracks 'Homepage', 'Topic', 'Category', and 'Tag' pages.)"
+  default: false
+  description: "Track page visits by page type (tracks the latest, categories, category, tags, and topic pages.)"
 track_topic_creation:
   default: false
   description: "Track topic creation"
