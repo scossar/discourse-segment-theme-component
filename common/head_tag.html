@@ -61,7 +61,7 @@ function page(title, opts) {
     currentPage = title;
     console.log('calling page with title:', title, 'opts', opts);
     // should currentPage get used here?
-    //window.analytics.page(title, opts);
+    //window.analytics.page(currentPage, opts);
 }
 
 function track(title, opts) {
@@ -78,22 +78,22 @@ function pageChanged(container, details) {
     let model = route.currentModel;
     let pageTitle;
 
+    console.log('routeName:', routeName);
     currentUrl = window.location.href;
 
     switch (routeName) {
+        case "discovery.latest":
+            pageTitle = "Latest Topics";
+            page(pageTitle, {referrer: referrer});
+            break;
         case "discovery.categories":
             pageTitle = "Categories Page";
             page(pageTitle, {referrer: referrer});
             break;
         case "discovery.parentCategory":
-            if (model && model.category) {
-                pageTitle = `Category Page: ${model.category.name}`;
-                page(pageTitle, {referrer: referrer});
-            }
-            break;
         case "discovery.category":
             if (model && model.category) {
-                pageTitle = `Subcategory Page: ${model.category.name}`;
+                pageTitle = `Category Page: ${model.category.name}`;
                 page(pageTitle, {referrer: referrer});
             }
             break;
