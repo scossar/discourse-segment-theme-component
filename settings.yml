@@ -4,6 +4,9 @@ segment_write_key:
 track_users:
   default: true
   description: "Call the Segment identify function when a user logs in or refreshes the site."
+track_users_traits:
+  default: true
+  description: "Add additional trait data to the user."
 track_by_external_id:
   default: false
   description: "For sites with SSO enabled, track users by their external_id instead of by their Discourse id."
