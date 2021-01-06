@@ -43,7 +43,8 @@ let currentPage;
 if (settings.track_users && currentUser && !userID) {
     api.container.lookup('store:main').find('user', currentUser.username).then((user) => {
         userID = ssoEnabled && settings.track_by_external_id ? user.external_id : user.id;
-        userTraits = ssoEnabled && settings.track_users_traits ? {name: user.name, email: user.email, nickname: user.username} : {};
+        userTraits = settings.track_users_traits ? {name: user.name, email: user.email, nickname: user.username} : {};
+
         analytics.identify(userID, userTraits);
     });
 }
