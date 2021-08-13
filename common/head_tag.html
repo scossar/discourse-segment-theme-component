@@ -143,7 +143,7 @@ if (settings.track_bookmarks) {
         let topic = post.topic;
         if (post && post.bookmarked && topic) {
             track(
-                post.post_number === 1 ? "Thread Bookmarked" : "Post Bookmarked",
+                post.post_number === 1 ? "Topic Bookmarked" : "Post Bookmarked",
                 {
                     topic_id: topic.id,
                     topic_title: topic.title,
