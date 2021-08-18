@@ -16,7 +16,11 @@ let currentPage;
 if (settings.track_users && currentUser && !userID) {
     api.container.lookup('store:main').find('user', currentUser.username).then((user) => {
         userID = ssoEnabled && settings.track_by_external_id ? user.external_id : user.id;
-        analytics.identify(userID);
+        if (settings.include_user_email) {
+            analytics.identify(userID, {email: user.email})
+        } else {
+            analytics.identify(userID);
+        }
     });
 }
 
